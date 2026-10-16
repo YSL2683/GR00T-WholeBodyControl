@@ -211,6 +211,8 @@ show_usage() {
     echo "  --input-type TYPE       Set the input type (default: zmq_manager)"
     echo "  --output-type TYPE      Set the output type (default: ros2)"
     echo "  --zmq-host HOST         Set the ZMQ host (default: localhost)"
+    echo "  --hand-type TYPE        Set hand controller type: dex3, dex1, none (default: dex3)"
+    echo "  --dex1                  Shorthand for --hand-type dex1"
     echo "  --motor-kp-scale SPEC   Scale Kp for hardware motor indices/ranges"
     echo "  --motor-kd-scale SPEC   Scale Kd for hardware motor indices/ranges"
     echo ""
@@ -225,6 +227,7 @@ show_usage() {
     echo "Examples:"
     echo "  $0 sim           # Run in simulation mode"
     echo "  $0 real          # Auto-detect real robot interface"
+    echo "  $0 --hand-type dex1 real   # Real robot with Dex1-1 grippers"
     echo "  $0 enP8p1s0      # Use specific interface"
     echo "  $0 192.168.x.x # Use interface with this IP"
     echo "  $0 --cp policy/checkpoints/custom/model_step_123456 real  # Use custom checkpoint"
@@ -244,6 +247,7 @@ MOTION_DATA_DEFAULT="reference/example/"
 INPUT_TYPE_DEFAULT="manager"
 OUTPUT_TYPE_DEFAULT="all"
 ZMQ_HOST_DEFAULT="localhost"
+HAND_TYPE_DEFAULT="dex3"
 
 # Initialize with defaults (will be set after parsing)
 CHECKPOINT="$CHECKPOINT_DEFAULT"
@@ -253,6 +257,7 @@ MOTION_DATA="$MOTION_DATA_DEFAULT"
 INPUT_TYPE="$INPUT_TYPE_DEFAULT"
 OUTPUT_TYPE="$OUTPUT_TYPE_DEFAULT"
 ZMQ_HOST="$ZMQ_HOST_DEFAULT"
+HAND_TYPE="$HAND_TYPE_DEFAULT"
 MOTOR_KP_SCALES=()
 MOTOR_KD_SCALES=()
 
@@ -318,6 +323,18 @@ while [[ $# -gt 0 ]]; do
             fi
             ZMQ_HOST="$2"
             shift 2
+            ;;
+        --hand-type)
+            if [[ -z "$2" ]]; then
+                echo -e "${RED}Error: --hand-type requires a type argument (dex3, dex1, none)${NC}" >&2
+                exit 1
+            fi
+            HAND_TYPE="$2"
+            shift 2
+            ;;
+        --dex1)
+            HAND_TYPE="dex1"
+            shift
             ;;
         --motor-kp-scale)
             if [[ -z "$2" ]]; then
@@ -541,6 +558,7 @@ echo -e "  Planner:            ${GREEN}$PLANNER${NC}"
 echo -e "  Input Type:         ${GREEN}$INPUT_TYPE${NC}"
 echo -e "  Output Type:        ${GREEN}$OUTPUT_TYPE${NC}"
 echo -e "  ZMQ Host:           ${GREEN}$ZMQ_HOST${NC}"
+echo -e "  Hand Type:          ${GREEN}$HAND_TYPE${NC}"
 if (( ${#EXTRA_ARGS[@]} > 0 )); then
 printf -v EXTRA_ARGS_DISPLAY ' %q' "${EXTRA_ARGS[@]}"
 echo -e "  Extra Args:         ${GREEN}${EXTRA_ARGS_DISPLAY# }${NC}"
@@ -556,7 +574,8 @@ echo -e "${BLUE}    --encoder-file $CHECKPOINT_ENCODER \\${NC}"
 echo -e "${BLUE}    --planner-file $PLANNER \\${NC}"
 echo -e "${BLUE}    --input-type $INPUT_TYPE \\${NC}"
 echo -e "${BLUE}    --output-type $OUTPUT_TYPE \\${NC}"
-echo -e "${BLUE}    --zmq-host $ZMQ_HOST${NC}"
+echo -e "${BLUE}    --zmq-host $ZMQ_HOST \\${NC}"
+echo -e "${BLUE}    --hand-type $HAND_TYPE${NC}"
 if (( ${#EXTRA_ARGS[@]} > 0 )); then
 echo -e "${BLUE}    ${EXTRA_ARGS_DISPLAY# }${NC}"
 fi
@@ -585,6 +604,7 @@ if [[ "$confirm" =~ ^[Yy]$ ]] || [[ -z "$confirm" ]]; then
         --input-type "$INPUT_TYPE" \
         --output-type "$OUTPUT_TYPE" \
         --zmq-host "$ZMQ_HOST" \
+        --hand-type "$HAND_TYPE" \
         "${EXTRA_ARGS[@]}"
 else
     echo ""
